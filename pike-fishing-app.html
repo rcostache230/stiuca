@@ -1,98 +1,95 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pike Fishing Competition</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Pike Fishing Competition Leaderboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { border-collapse: collapse; width: 50%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        input { margin: 5px; }
+    </style>
 </head>
-<body class="bg-blue-50 p-4">
-    <div class="max-w-3xl mx-auto">
-        <h1 class="text-3xl font-bold text-center mb-6 text-blue-800">Pike Fishing Competition</h1>
-        
-        <div class="bg-white p-4 rounded-lg shadow-md mb-6">
-            <h2 class="text-xl font-semibold mb-4">Add Catch</h2>
-            <form id="catchForm" class="space-y-4">
-                <div>
-                    <label class="block mb-1">Angler Name:</label>
-                    <input type="text" id="anglerName" class="w-full p-2 border rounded" required>
-                </div>
-                <div>
-                    <label class="block mb-1">Pike Size (cm):</label>
-                    <input type="number" id="pikeSize" class="w-full p-2 border rounded" required>
-                </div>
-                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                    Add Catch
-                </button>
-            </form>
-        </div>
+<body>
 
-        <div class="bg-white p-4 rounded-lg shadow-md">
-            <h2 class="text-xl font-semibold mb-4">Leaderboard</h2>
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="p-2 text-left">Rank</th>
-                            <th class="p-2 text-left">Angler</th>
-                            <th class="p-2 text-left">Points</th>
-                            <th class="p-2 text-left">Catches</th>
-                        </tr>
-                    </thead>
-                    <tbody id="leaderboard"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+<h1>Pike Fishing Competition Leaderboard</h1>
 
-    <script>
-        const pointsSystem = [
-            { min: 0, max: 50, points: 1 },
-            { min: 51, max: 70, points: 2 },
-            { min: 71, max: 90, points: 3 },
-            { min: 91, max: 110, points: 4 },
-            { min: 111, max: Infinity, points: 5 }
-        ];
+<form id="catchForm">
+    <label for="name">Competitor Name:</label>
+    <input type="text" id="name" required><br>
+    <label for="size">Pike Size (cm):</label>
+    <input type="number" id="size" required><br>
+    <button type="submit">Add Catch</button>
+</form>
 
-        let anglers = {};
+<h2>Leaderboard</h2>
+<table id="leaderboard">
+    <thead>
+        <tr>
+            <th>Competitor</th>
+            <th>Total Points</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- Leaderboard entries will go here -->
+    </tbody>
+</table>
 
-        function calculatePoints(size) {
-            const category = pointsSystem.find(cat => size >= cat.min && size <= cat.max);
-            return category ? category.points : 0;
-        }
+<script>
+    const sizeIntervals = [
+        { min: 0, max: 50, points: 0 },
+        { min: 51, max: 60, points: 10 },
+        { min: 61, max: 70, points: 20 },
+        { min: 71, max: 80, points: 30 },
+        { min: 81, max: 90, points: 40 },
+        { min: 91, max: 100, points: 50 },
+        { min: 101, max: Infinity, points: 60 }
+    ];
 
-        function updateLeaderboard() {
-            const leaderboardBody = document.getElementById('leaderboard');
-            const sortedAnglers = Object.entries(anglers)
-                .sort(([,a], [,b]) => b.points - a.points)
-                .map(([name, data], index) => ({name, ...data, rank: index + 1}));
+    let competitors = {};
 
-            leaderboardBody.innerHTML = sortedAnglers
-                .map(({rank, name, points, catches}) => `
-                    <tr class="border-b">
-                        <td class="p-2">${rank}</td>
-                        <td class="p-2">${name}</td>
-                        <td class="p-2">${points}</td>
-                        <td class="p-2">${catches.join(', ')} cm</td>
-                    </tr>
-                `).join('');
-        }
+    document.getElementById('catchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('name').value.trim();
+        const size = parseFloat(document.getElementById('size').value);
 
-        document.getElementById('catchForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const name = document.getElementById('anglerName').value;
-            const size = parseInt(document.getElementById('pikeSize').value);
-            
-            if (!anglers[name]) {
-                anglers[name] = {points: 0, catches: []};
+        if (name && !isNaN(size)) {
+            const points = calculatePoints(size);
+            if (!competitors[name]) {
+                competitors[name] = 0;
             }
-            
-            anglers[name].catches.push(size);
-            anglers[name].points += calculatePoints(size);
-            
+            competitors[name] += points;
             updateLeaderboard();
-            this.reset();
-        });
-    </script>
+            document.getElementById('catchForm').reset();
+        }
+    });
+
+    function calculatePoints(size) {
+        for (let interval of sizeIntervals) {
+            if (size >= interval.min && size <= interval.max) {
+                return interval.points;
+            }
+        }
+        return 0;
+    }
+
+    function updateLeaderboard() {
+        const tbody = document.querySelector('#leaderboard tbody');
+        tbody.innerHTML = '';
+        const sortedCompetitors = Object.entries(competitors)
+            .sort((a, b) => b[1] - a[1]);
+        for (let [name, points] of sortedCompetitors) {
+            const row = document.createElement('tr');
+            const nameCell = document.createElement('td');
+            const pointsCell = document.createElement('td');
+            nameCell.textContent = name;
+            pointsCell.textContent = points;
+            row.appendChild(nameCell);
+            row.appendChild(pointsCell);
+            tbody.appendChild(row);
+        }
+    }
+</script>
+
 </body>
 </html>
